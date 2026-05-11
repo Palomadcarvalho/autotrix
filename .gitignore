@@ -1,0 +1,40 @@
+# ── Ambiente ───────────────────────────────
+.env
+*.env
+
+# ── Python ─────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+env/
+
+# ── Banco de dados ──────────────────────────
+*.db
+*.sqlite3
+
+# ── Docker ─────────────────────────────────
+postgres_data/
+rabbitmq_data/
+
+# ── IDEs ───────────────────────────────────
+.vscode/
+.idea/
+*.iml
+
+# ── Sistema operacional ─────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Flutter (mobile/) ───────────────────────
+mobile/cliente/.dart_tool/
+mobile/cliente/build/
+mobile/cliente/.flutter-plugins
+mobile/cliente/.flutter-plugins-dependencies
+mobile/oficina/.dart_tool/
+mobile/oficina/build/
+mobile/oficina/.flutter-plugins
+mobile/oficina/.flutter-plugins-dependencies

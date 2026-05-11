@@ -1,0 +1,68 @@
+services:
+
+  # ─────────────────────────────────────────
+  # Banco de dados PostgreSQL
+  # ─────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: autotrix_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-autotrix}
+      POSTGRES_USER:     ${POSTGRES_USER:-autotrix_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-autotrix_pass}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./back/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-autotrix_user} -d ${POSTGRES_DB:-autotrix}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────
+  # Message Broker — RabbitMQ
+  # ─────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: autotrix_rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-autotrix_mq}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-autotrix_mq_pass}
+    ports:
+      - "5672:5672"    # AMQP (aplicações)
+      - "15672:15672"  # Management UI → http://localhost:15672
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  backend:
+    build:
+      context: ./back
+      dockerfile: Dockerfile
+    container_name: autotrix_backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-autotrix_user}:${POSTGRES_PASSWORD:-autotrix_pass}@db:5432/${POSTGRES_DB:-autotrix}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-autotrix_mq}:${RABBITMQ_PASS:-autotrix_mq_pass}@rabbitmq:5672/
+    ports:
+      - "5000:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./back:/app   # hot-reload em desenvolvimento
+
+volumes:
+  postgres_data:
+  rabbitmq_data:

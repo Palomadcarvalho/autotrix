@@ -25,39 +25,81 @@ Além disso, o sistema também oferece flexibilidade nas negociações: o client
 | **Cliente** | Visualiza horários disponíveis, solicita agendamentos, aceita ou recusa negociações, acompanha o status do serviço |
 | **Prestador (oficina)** | Cadastra disponibilidades, confirma ou propõe horários alternativos (negociação), atualiza o andamento dos serviços |
 
+## Estrutura do repositório
+
+```
+autotrix/
+│
+├── docker-compose.yml          
+├── .env                        
+├── .env.example                
+│
+├── back/                       
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── app.py                 
+│   ├── database.py             
+│   │
+│   ├── routes/
+│   │   ├── clientes.py
+│   │   ├── veiculos.py
+│   │   ├── servicos.py
+│   │   ├── disponibilidades.py
+│   │   └── agendamentos.py     # Fluxo central + integração MOM
+│   │
+│   ├── mom/
+│   │   ├── publisher.py        # Publica eventos no RabbitMQ
+│   │   └── consumer.py         # Consome eventos (Sprint 2)
+│   │
+│   └── sql/
+│       └── init.sql            # Schema PostgreSQL + dados iniciais
+│
+└── mobile/                     # Aplicativos Flutter
+    ├── cliente/                # Sprint 3 — app do cliente
+    └── oficina/                # Sprint 4 — app da oficina
+```
+
 ---
 ## Arquitetura
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                    Camada de Apresentação                     │
-│                                                              │
-│   📱 App Cliente                  📱 App Oficina             │
-│   Flutter / Dart                  Flutter / Dart             │
-│   • Visualiza disponibilidades    • Cadastra disponibilidades │
-│   • Solicita agendamento          • Confirma ou negocia       │
-│   • Aceita/recusa negociação      • Atualiza status           │
-└──────────────┬────────────────────────────┬──────────────────┘
-               │         HTTP REST          │
-               ▼                            ▼
-┌──────────────────────────────────────────────────────────────┐
-│                      Camada de Negócio                        │
-│                                                              │
-│           ⚙️  Backend REST — Flask (Python)                  │
-│                  localhost · porta 5000                       │
-│                                                              │
-│  /api/clientes          /api/servicos                        │
-│  /api/veiculos          /api/disponibilidades                │
-│  /api/agendamentos  ←── PATCH /status  (fluxo central)       │
-└──────────────────────────────┬───────────────────────────────┘
-                               │ SQLite3
-                               ▼
-┌──────────────────────────────────────────────────────────────┐
-│                   Camada de Persistência                      │
-│                                                              │
-│          🗄️  SQLite — autotrix.db                           │
-│   clientes · veiculos · servicos                             │
-│   disponibilidades · agendamentos                            │
-└──────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│  Dispositivos (fora do Docker)                                   │
+│  📱 App Cliente (Flutter)          📱 App Oficina (Flutter)     │
+└────────────┬───────────────────────────────┬─────────────────────┘
+             │           HTTP REST           │
+             ▼                               ▼
+┌──────────────────────────────────────────────────────────────────┐
+│  🐳 docker-compose.yml                                          │
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐     │
+│  │ autotrix_backend — Flask :5000 — back/                  │     │
+│  │                                                         │     │
+│  │  /api/clientes  /api/veiculos  /api/servicos            │     │
+│  │  /api/disponibilidades  /api/agendamentos               │     │
+│  │                                                         │     │
+│  │  📤 MOM Publisher → publica eventos AMQP               │     │
+│  └────────────────────────┬────────────────────────────────┘     │
+│                           │ AMQP                                 │
+│  ┌────────────────────────▼────────────────────────────────┐     │
+│  │ autotrix_rabbitmq — RabbitMQ :5672 / UI :15672          │     │
+│  │                                                         │     │
+│  │  Exchange: autotrix.events (topic, durable)             │     │
+│  │  ┌─────────────────────────────────────┐                │     │
+│  │  │ Filas (durable, persistentes)       │                │     │
+│  │  │ q.agendamento.criado                │                │     │
+│  │  │ q.agendamento.status                │                │     │
+│  │  │ q.negociacao.proposta               │                │     │
+│  │  │ q.negociacao.respondida             │                │     │
+│  │  └─────────────────────────────────────┘                │     │
+│  │  📥 MOM Consumer (Sprint 2)                            |      |
+│  └────────────────────────┬────────────────────────────────┘     │
+│                           │ psycopg2                             │
+│  ┌────────────────────────▼────────────────────────────────┐     │
+│  │ autotrix_db — PostgreSQL 16 :5432                       │     │
+│  │  clientes · veiculos · servicos                         │     │
+│  │  disponibilidades · agendamentos                        │     │
+│  └─────────────────────────────────────────────────────────┘     │
+└──────────────────────────────────────────────────────────────────┘
 ```
 ---
 
@@ -67,25 +109,25 @@ Além disso, o sistema também oferece flexibilidade nas negociações: o client
                      ┌─────────────┐
                      │   pendente  │
                      └──────┬──────┘
-              confirma       │        oficina propõe
-              direto ◄───────┤        horário alternativo
-                             │ ───────────────────►
-                             │                    ┌─────────────┐
-                             │                    │ negociacao  │
-                             │                    └──────┬──────┘
-                             │         aceita ◄──────────┤
-                             │                           │ recusa
-                             ▼                           ▼
+              confirma      │        oficina propõe
+              direto ◄──────┤        horário alternativo
+                            │ ───────────────────►
+                            │                    ┌─────────────┐
+                            │                    │ negociacao  │
+                            │                    └──────┬──────┘
+                            │         aceita ◄──────────┤
+                            │                           │ recusa
+                            ▼                           ▼
                      ┌─────────────┐           ┌─────────────┐
                      │ confirmado  │           │  cancelado  │
                      └──────┬──────┘           └─────────────┘
-                             │
-                             ▼
+                            │
+                            ▼
                      ┌─────────────┐
                      │em_andamento │
                      └──────┬──────┘
-                             │
-                             ▼
+                            │
+                            ▼
                      ┌─────────────┐
                      │  concluido  │
                      └─────────────┘

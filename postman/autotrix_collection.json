@@ -1,0 +1,462 @@
+{
+  "info": {
+    "name": "Autotrix API",
+    "_postman_id": "autotrix-v2-collection",
+    "description": "Coleção completa de endpoints da API Autotrix — Sprint 1.\nBaseURL: http://localhost:5000",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000", "type": "string" }
+  ],
+  "item": [
+
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "Root — info do sistema",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/",
+            "description": "Retorna informações gerais da API e lista de endpoints."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"sistema\": \"Autotrix API\",\n  \"versao\": \"2.0.0\",\n  \"banco\": \"PostgreSQL\",\n  \"mom\": \"RabbitMQ (topic exchange: autotrix.events)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/health"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "👤 Clientes",
+      "item": [
+        {
+          "name": "Listar clientes",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/clientes/"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "[\n  {\n    \"id\": 1,\n    \"nome\": \"João Silva\",\n    \"email\": \"joao@email.com\",\n    \"telefone\": \"31999990000\",\n    \"criado_em\": \"2026-05-11T10:00:00+00:00\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Buscar cliente por ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/clientes/1"
+          }
+        },
+        {
+          "name": "Criar cliente",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/clientes/",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João Silva\",\n  \"email\": \"joao@email.com\",\n  \"telefone\": \"31999990000\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"id\": 1,\n  \"nome\": \"João Silva\",\n  \"email\": \"joao@email.com\",\n  \"telefone\": \"31999990000\",\n  \"criado_em\": \"2026-05-11T10:00:00+00:00\"\n}"
+            },
+            {
+              "name": "400 Email duplicado",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{ \"erro\": \"duplicate key value violates unique constraint...\" }"
+            }
+          ]
+        },
+        {
+          "name": "Atualizar cliente",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/clientes/1",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefone\": \"31988880000\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Remover cliente",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/clientes/1"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "🚗 Veículos",
+      "item": [
+        {
+          "name": "Listar veículos",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/veiculos/"
+          }
+        },
+        {
+          "name": "Listar veículos por cliente",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/veiculos/?cliente_id=1",
+              "query": [{ "key": "cliente_id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Buscar veículo por ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/veiculos/1"
+          }
+        },
+        {
+          "name": "Cadastrar veículo",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/veiculos/",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cliente_id\": 1,\n  \"marca\": \"Chevrolet\",\n  \"modelo\": \"Onix\",\n  \"ano\": 2022,\n  \"placa\": \"ABC1D23\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"id\": 1,\n  \"cliente_id\": 1,\n  \"marca\": \"Chevrolet\",\n  \"modelo\": \"Onix\",\n  \"ano\": 2022,\n  \"placa\": \"ABC1D23\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Remover veículo",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/veiculos/1"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "🔧 Serviços",
+      "item": [
+        {
+          "name": "Listar serviços",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/servicos/",
+            "description": "Retorna os serviços pré-cadastrados no init.sql mais os adicionados via API."
+          }
+        },
+        {
+          "name": "Buscar serviço por ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/servicos/1"
+          }
+        },
+        {
+          "name": "Criar serviço",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/servicos/",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Troca de pneus\",\n  \"descricao\": \"Substituição dos 4 pneus com balanceamento\",\n  \"duracao_min\": 60,\n  \"preco\": 200.00\n}"
+            }
+          }
+        },
+        {
+          "name": "Atualizar serviço",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/servicos/1",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"preco\": 380.00\n}"
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "📅 Disponibilidades",
+      "item": [
+        {
+          "name": "Listar disponibilidades",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/disponibilidades/"
+          }
+        },
+        {
+          "name": "Filtrar por data",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/disponibilidades/?data=2026-05-15",
+              "query": [{ "key": "data", "value": "2026-05-15" }]
+            }
+          }
+        },
+        {
+          "name": "Buscar disponibilidade por ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/disponibilidades/1"
+          }
+        },
+        {
+          "name": "Cadastrar disponibilidade (oficina)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/disponibilidades/",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": \"2026-05-15\",\n  \"hora_inicio\": \"08:00\",\n  \"hora_fim\": \"10:00\",\n  \"vagas\": 2\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"id\": 1,\n  \"data\": \"2026-05-15\",\n  \"hora_inicio\": \"08:00:00\",\n  \"hora_fim\": \"10:00:00\",\n  \"vagas\": 2,\n  \"criado_em\": \"2026-05-11T10:00:00+00:00\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Atualizar disponibilidade",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/disponibilidades/1",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vagas\": 3\n}"
+            }
+          }
+        },
+        {
+          "name": "Remover disponibilidade",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/disponibilidades/1"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "📋 Agendamentos",
+      "item": [
+        {
+          "name": "Listar agendamentos",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/agendamentos/"
+          }
+        },
+        {
+          "name": "Filtrar por status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/agendamentos/?status=pendente",
+              "query": [{ "key": "status", "value": "pendente" }]
+            },
+            "description": "Status válidos: pendente, negociacao, confirmado, em_andamento, concluido, cancelado"
+          }
+        },
+        {
+          "name": "Filtrar por cliente",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/agendamentos/?cliente_id=1",
+              "query": [{ "key": "cliente_id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Buscar agendamento por ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/agendamentos/1"
+          }
+        },
+        {
+          "name": "Criar agendamento (cliente) → publica MOM",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/agendamentos/",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cliente_id\": 1,\n  \"veiculo_id\": 1,\n  \"servico_id\": 1,\n  \"data_hora\": \"2026-05-15T09:00:00\",\n  \"observacoes\": \"Trazer na parte da manhã\"\n}"
+            },
+            "description": "Cria agendamento com status 'pendente'.\nPublica evento 'agendamento.criado' no RabbitMQ → fila q.agendamento.criado → notifica app da oficina."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"id\": 1,\n  \"cliente_id\": 1,\n  \"veiculo_id\": 1,\n  \"servico_id\": 1,\n  \"data_hora\": \"2026-05-15T09:00:00+00:00\",\n  \"data_hora_sugerida\": null,\n  \"status\": \"pendente\",\n  \"observacoes\": \"Trazer na parte da manhã\",\n  \"criado_em\": \"2026-05-11T10:00:00+00:00\"\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "── Fluxo A: Oficina confirma direto ──",
+          "item": [
+            {
+              "name": "1. Oficina confirma agendamento → publica MOM",
+              "request": {
+                "method": "PATCH",
+                "url": "{{baseUrl}}/api/agendamentos/1/status",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"confirmado\"\n}"
+                },
+                "description": "Publica 'agendamento.status.atualizado' → fila q.agendamento.status → notifica cliente."
+              }
+            },
+            {
+              "name": "2. Oficina inicia serviço",
+              "request": {
+                "method": "PATCH",
+                "url": "{{baseUrl}}/api/agendamentos/1/status",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"status\": \"em_andamento\"\n}" }
+              }
+            },
+            {
+              "name": "3. Oficina conclui serviço",
+              "request": {
+                "method": "PATCH",
+                "url": "{{baseUrl}}/api/agendamentos/1/status",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"status\": \"concluido\"\n}" }
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "── Fluxo B: Negociação de horário ──",
+          "item": [
+            {
+              "name": "1. Oficina propõe horário alternativo → publica MOM",
+              "request": {
+                "method": "PATCH",
+                "url": "{{baseUrl}}/api/agendamentos/1/status",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"negociacao\",\n  \"data_hora_sugerida\": \"2026-05-16T14:00:00\"\n}"
+                },
+                "description": "Campo 'data_hora_sugerida' é obrigatório quando status = negociacao.\nPublica 'agendamento.negociacao.proposta' → fila q.negociacao.proposta → notifica cliente."
+              },
+              "response": [
+                {
+                  "name": "200 OK",
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\n  \"mensagem\": \"Status → 'negociacao'\",\n  \"agendamento\": {\n    \"id\": 1,\n    \"status\": \"negociacao\",\n    \"data_hora\": \"2026-05-15T09:00:00+00:00\",\n    \"data_hora_sugerida\": \"2026-05-16T14:00:00+00:00\"\n  }\n}"
+                },
+                {
+                  "name": "400 Sem data_hora_sugerida",
+                  "status": "Bad Request",
+                  "code": 400,
+                  "body": "{ \"erro\": \"Para status 'negociacao' informe 'data_hora_sugerida'\" }"
+                }
+              ]
+            },
+            {
+              "name": "2a. Cliente aceita negociação → publica MOM",
+              "request": {
+                "method": "PATCH",
+                "url": "{{baseUrl}}/api/agendamentos/1/status",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"confirmado\"\n}"
+                },
+                "description": "Sistema promove data_hora_sugerida → data_hora automaticamente.\nPublica 'agendamento.negociacao.respondida' com resposta='aceito'."
+              },
+              "response": [
+                {
+                  "name": "200 OK — horário promovido",
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\n  \"mensagem\": \"Status → 'confirmado'\",\n  \"agendamento\": {\n    \"id\": 1,\n    \"status\": \"confirmado\",\n    \"data_hora\": \"2026-05-16T14:00:00+00:00\",\n    \"data_hora_sugerida\": null\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "2b. Cliente recusa negociação → publica MOM",
+              "request": {
+                "method": "PATCH",
+                "url": "{{baseUrl}}/api/agendamentos/1/status",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"cancelado\"\n}"
+                },
+                "description": "Publica 'agendamento.negociacao.respondida' com resposta='recusado'."
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Cancelar agendamento",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/agendamentos/1",
+            "description": "Soft delete — atualiza status para 'cancelado'. Publica evento MOM."
+          }
+        }
+      ]
+    }
+
+  ]
+}
