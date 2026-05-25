@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
 
   # ─────────────────────────────────────────
@@ -15,7 +17,8 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./back/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./back/sql/init.sql:/docker-entrypoint-initdb.d/01_init.sql
+      - ./back/sql/migration_sprint2.sql:/docker-entrypoint-initdb.d/02_sprint2.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-autotrix_user} -d ${POSTGRES_DB:-autotrix}"]
       interval: 10s
@@ -33,8 +36,8 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-autotrix_mq}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-autotrix_mq_pass}
     ports:
-      - "5672:5672"    # AMQP (aplicações)
-      - "15672:15672"  # Management UI → http://localhost:15672
+      - "5672:5672"
+      - "15672:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
@@ -43,6 +46,9 @@ services:
       timeout: 10s
       retries: 5
 
+  # ─────────────────────────────────────────
+  # Backend Flask
+  # ─────────────────────────────────────────
   backend:
     build:
       context: ./back
@@ -61,7 +67,31 @@ services:
       rabbitmq:
         condition: service_healthy
     volumes:
-      - ./back:/app   # hot-reload em desenvolvimento
+      - ./back:/app
+
+  # ─────────────────────────────────────────
+  # Consumer MOM — Sprint 2
+  # Processa mensagens das filas do RabbitMQ
+  # e persiste os eventos no PostgreSQL
+  # ─────────────────────────────────────────
+  consumer:
+    build:
+      context: ./back
+      dockerfile: Dockerfile
+    container_name: autotrix_consumer
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-autotrix_user}:${POSTGRES_PASSWORD:-autotrix_pass}@db:5432/${POSTGRES_DB:-autotrix}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-autotrix_mq}:${RABBITMQ_PASS:-autotrix_mq_pass}@rabbitmq:5672/
+    command: python -m mom.consumer
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./back:/app
 
 volumes:
   postgres_data:
