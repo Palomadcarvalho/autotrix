@@ -19,7 +19,7 @@ class Servico {
       nome:       json['nome'],
       descricao:  json['descricao'],
       duracaoMin: (json['duracao_min'] as num).toInt(),
-      preco:      (json['preco'] as num).toDouble(),
+      preco:      double.parse(json['preco'].toString()),
     );
   }
 }

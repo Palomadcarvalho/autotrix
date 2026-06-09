@@ -6,7 +6,9 @@
       "Bash(flutter run *)",
       "Bash(adb devices *)",
       "PowerShell(adb devices *)",
-      "PowerShell(flutter devices *)"
+      "PowerShell(flutter devices *)",
+      "Bash(curl -s http://localhost:5000/api/agendamentos/)",
+      "Bash(curl -s http://localhost:5000/api/servicos/)"
     ]
   }
 }

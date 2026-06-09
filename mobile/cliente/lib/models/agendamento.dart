@@ -56,7 +56,7 @@ class Agendamento {
       modelo:            json['modelo'],
       servicoNome:       json['servico_nome'],
       preco:             json['preco'] != null
-                            ? (json['preco'] as num).toDouble()
+                            ? double.parse(json['preco'].toString())
                             : null,
     );
   }
