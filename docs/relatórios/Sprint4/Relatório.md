@@ -1,9 +1,13 @@
 # Relatório Técnico Final — Autotrix
 
 **Disciplina:** Lab. de Desenvolvimento de Aplicações Móveis e Distribuídas
+
 **Curso:** Engenharia de Software — PUC Minas
+
 **Semestre:** 1º Semestre 2026
+
 **Aluno(a):** Paloma Dias de Carvalho
+
 **Professores:** Cleiton Silva Tavares e Cristiano de Macedo Neto
 
 ---
