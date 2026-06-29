@@ -4,11 +4,8 @@ import '../models/agendamento.dart';
 import '../models/models.dart';
 
 class ApiService {
-  // Em desenvolvimento: use o IP da sua máquina em vez de localhost
-  // para que o emulador Android consiga acessar o backend
-  static const String baseUrl = 'http://10.0.2.2:5000/api';
+  static const String baseUrl = 'http://localhost:5000/api';
 
-  // ── Serviços ──────────────────────────────────────────────
 
   Future<List<Servico>> listarServicos() async {
     final res = await http.get(Uri.parse('$baseUrl/servicos/'));
@@ -19,7 +16,6 @@ class ApiService {
     throw Exception('Erro ao carregar serviços: ${res.statusCode}');
   }
 
-  // ── Disponibilidades ──────────────────────────────────────
 
   Future<List<Disponibilidade>> listarDisponibilidades({String? data}) async {
     final uri = data != null
@@ -33,7 +29,6 @@ class ApiService {
     throw Exception('Erro ao carregar disponibilidades: ${res.statusCode}');
   }
 
-  // ── Veículos ──────────────────────────────────────────────
 
   Future<List<Veiculo>> listarVeiculos(int clienteId) async {
     final res = await http.get(
@@ -45,8 +40,6 @@ class ApiService {
     }
     throw Exception('Erro ao carregar veículos: ${res.statusCode}');
   }
-
-  // ── Agendamentos ──────────────────────────────────────────
 
   Future<List<Agendamento>> listarAgendamentos({int? clienteId}) async {
     final uri = clienteId != null
@@ -82,18 +75,18 @@ class ApiService {
         'cliente_id': clienteId,
         'veiculo_id': veiculoId,
         'servico_id': servicoId,
-        'data_hora':  dataHora,
+        'data_hora': dataHora,
         if (observacoes != null) 'observacoes': observacoes,
       }),
     );
     if (res.statusCode == 201) {
       return Agendamento.fromJson(jsonDecode(res.body));
     }
-    throw Exception('Erro ao criar agendamento: ${jsonDecode(res.body)['erro']}');
+    throw Exception(
+        'Erro ao criar agendamento: ${jsonDecode(res.body)['erro']}');
   }
 
   Future<void> responderNegociacao(int id, String resposta) async {
-    // resposta: 'confirmado' (aceitar) ou 'cancelado' (recusar)
     final res = await http.patch(
       Uri.parse('$baseUrl/agendamentos/$id/status'),
       headers: {'Content-Type': 'application/json'},

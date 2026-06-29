@@ -5,7 +5,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 class WebSocketService {
   // 10.0.2.2 é o IP do host no emulador Android
   // Em dispositivo físico, use o IP da sua máquina na rede local
-  static const String _wsBase = 'ws://10.0.2.2:5000/ws';
+  static const String _wsBase = 'ws://localhost:5000/ws';
 
   WebSocketChannel? _channel;
   final StreamController<Map<String, dynamic>> _controller =
@@ -35,14 +35,12 @@ class WebSocketService {
         },
         onDone: () {
           _conectado = false;
-          // Tenta reconectar após 5 segundos
           Future.delayed(const Duration(seconds: 5), () {
             if (!_controller.isClosed) conectar(clienteId);
           });
         },
       );
 
-      // Ping a cada 25s para manter o socket vivo
       _pingTimer = Timer.periodic(const Duration(seconds: 25), (_) {
         if (_conectado) _channel?.sink.add('ping');
       });

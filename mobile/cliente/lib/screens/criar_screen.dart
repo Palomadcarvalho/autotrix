@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
-import 'listagem_screen.dart';
+import '../services/auth_service.dart';
 
 class CriarScreen extends StatefulWidget {
   const CriarScreen({super.key});
@@ -12,24 +12,26 @@ class CriarScreen extends StatefulWidget {
 
 class _CriarScreenState extends State<CriarScreen> {
   final _api = ApiService();
+  final _auth = AuthService();
   final _obsCtrl = TextEditingController();
 
-  List<Servico>       _servicos         = [];
-  List<Veiculo>       _veiculos         = [];
+  List<Servico> _servicos = [];
+  List<Veiculo> _veiculos = [];
   List<Disponibilidade> _disponibilidades = [];
 
-  Servico?       _servicoSelecionado;
-  Veiculo?       _veiculoSelecionado;
+  Servico? _servicoSelecionado;
+  Veiculo? _veiculoSelecionado;
   Disponibilidade? _horarioSelecionado;
 
-  bool _carregando  = true;
-  bool _salvando    = false;
+  int _clienteId = 0;
+  bool _carregando = true;
+  bool _salvando = false;
   String? _erro;
 
   @override
   void initState() {
     super.initState();
-    _carregarDados();
+    _carregarClienteEDados();
   }
 
   @override
@@ -38,30 +40,50 @@ class _CriarScreenState extends State<CriarScreen> {
     super.dispose();
   }
 
+  Future<void> _carregarClienteEDados() async {
+    final usuario = await _auth.getUsuarioLogado();
+    if (usuario != null) {
+      setState(() => _clienteId = usuario.id);
+    }
+    await _carregarDados();
+  }
+
   Future<void> _carregarDados() async {
+    if (_clienteId == 0) {
+      setState(() {
+        _carregando = false;
+        _erro = 'Usuário não autenticado';
+      });
+      return;
+    }
     try {
       final resultados = await Future.wait([
         _api.listarServicos(),
-        _api.listarVeiculos(ListagemScreen.clienteIdDemo),
+        _api.listarVeiculos(_clienteId),
         _api.listarDisponibilidades(),
       ]);
       if (mounted) {
         setState(() {
-          _servicos          = resultados[0] as List<Servico>;
-          _veiculos          = resultados[1] as List<Veiculo>;
-          _disponibilidades  = resultados[2] as List<Disponibilidade>;
-          _carregando        = false;
+          _servicos = resultados[0] as List<Servico>;
+          _veiculos = resultados[1] as List<Veiculo>;
+          _disponibilidades = resultados[2] as List<Disponibilidade>;
+          _carregando = false;
         });
       }
     } catch (e) {
-      if (mounted) setState(() { _carregando = false; _erro = e.toString(); });
+      if (mounted) {
+        setState(() {
+          _carregando = false;
+          _erro = e.toString();
+        });
+      }
     }
   }
 
   Future<void> _salvar() async {
     if (_servicoSelecionado == null ||
-        _veiculoSelecionado  == null ||
-        _horarioSelecionado  == null) {
+        _veiculoSelecionado == null ||
+        _horarioSelecionado == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Preencha todos os campos obrigatórios'),
@@ -73,18 +95,15 @@ class _CriarScreenState extends State<CriarScreen> {
 
     setState(() => _salvando = true);
     try {
-      // Monta data_hora combinando data + hora_inicio da disponibilidade
       final dataHora =
           '${_horarioSelecionado!.data}T${_horarioSelecionado!.horaInicio}';
 
       await _api.criarAgendamento(
-        clienteId:   ListagemScreen.clienteIdDemo,
-        veiculoId:   _veiculoSelecionado!.id,
-        servicoId:   _servicoSelecionado!.id,
-        dataHora:    dataHora,
-        observacoes: _obsCtrl.text.trim().isEmpty
-            ? null
-            : _obsCtrl.text.trim(),
+        clienteId: _clienteId,
+        veiculoId: _veiculoSelecionado!.id,
+        servicoId: _servicoSelecionado!.id,
+        dataHora: dataHora,
+        observacoes: _obsCtrl.text.trim().isEmpty ? null : _obsCtrl.text.trim(),
       );
 
       if (mounted) {
@@ -133,39 +152,59 @@ class _CriarScreenState extends State<CriarScreen> {
           _secao('Serviço desejado'),
           const SizedBox(height: 8),
           ..._servicos.map((s) => _servicoTile(s)),
-
           const SizedBox(height: 24),
           _secao('Veículo'),
           const SizedBox(height: 8),
           if (_veiculos.isEmpty)
-            const Text('Nenhum veículo cadastrado',
-                style: TextStyle(color: Colors.grey))
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.orange[50],
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.orange[200]!),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.orange, size: 18),
+                  SizedBox(width: 8),
+                  Text('Nenhum veículo cadastrado',
+                      style: TextStyle(color: Colors.orange)),
+                ],
+              ),
+            )
           else
             ..._veiculos.map((v) => _veiculoTile(v)),
-
           const SizedBox(height: 24),
           _secao('Horário disponível'),
           const SizedBox(height: 8),
           if (_disponibilidades.isEmpty)
-            const Text('Nenhum horário disponível no momento',
-                style: TextStyle(color: Colors.grey))
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: const Text(
+                'Nenhum horário disponível no momento',
+                style: TextStyle(color: Colors.grey),
+              ),
+            )
           else
             ..._disponibilidades.map((d) => _horarioTile(d)),
-
           const SizedBox(height: 24),
           _secao('Observações (opcional)'),
           const SizedBox(height: 8),
           TextField(
             controller: _obsCtrl,
-            maxLines:   3,
+            maxLines: 3,
             decoration: InputDecoration(
               hintText: 'Ex.: veículo apresenta barulho no motor',
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10)),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               filled: true,
             ),
           ),
-
           const SizedBox(height: 32),
           SizedBox(
             width: double.infinity,
@@ -194,7 +233,7 @@ class _CriarScreenState extends State<CriarScreen> {
       );
 
   Widget _servicoTile(Servico s) {
-    final selecionado = _servicoSelecionado?.id == s.id;
+    final sel = _servicoSelecionado?.id == s.id;
     return GestureDetector(
       onTap: () => setState(() => _servicoSelecionado = s),
       child: Container(
@@ -203,12 +242,12 @@ class _CriarScreenState extends State<CriarScreen> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: selecionado
+            color: sel
                 ? Theme.of(context).colorScheme.primary
                 : Colors.grey.withOpacity(0.3),
-            width: selecionado ? 2 : 1,
+            width: sel ? 2 : 1,
           ),
-          color: selecionado
+          color: sel
               ? Theme.of(context).colorScheme.primary.withOpacity(0.05)
               : null,
         ),
@@ -222,16 +261,15 @@ class _CriarScreenState extends State<CriarScreen> {
                       style: const TextStyle(fontWeight: FontWeight.w500)),
                   if (s.descricao != null && s.descricao!.isNotEmpty)
                     Text(s.descricao!,
-                        style: TextStyle(
-                            color: Colors.grey[500], fontSize: 12)),
-                  Text('${s.duracaoMin} min  •  '
-                      'R\$ ${s.preco.toStringAsFixed(2)}',
-                      style: TextStyle(
-                          color: Colors.grey[500], fontSize: 12)),
+                        style:
+                            TextStyle(color: Colors.grey[500], fontSize: 12)),
+                  Text(
+                      '${s.duracaoMin} min  •  R\$ ${s.preco.toStringAsFixed(2)}',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 12)),
                 ],
               ),
             ),
-            if (selecionado)
+            if (sel)
               Icon(Icons.check_circle,
                   color: Theme.of(context).colorScheme.primary),
           ],
@@ -241,7 +279,7 @@ class _CriarScreenState extends State<CriarScreen> {
   }
 
   Widget _veiculoTile(Veiculo v) {
-    final selecionado = _veiculoSelecionado?.id == v.id;
+    final sel = _veiculoSelecionado?.id == v.id;
     return GestureDetector(
       onTap: () => setState(() => _veiculoSelecionado = v),
       child: Container(
@@ -250,12 +288,12 @@ class _CriarScreenState extends State<CriarScreen> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: selecionado
+            color: sel
                 ? Theme.of(context).colorScheme.primary
                 : Colors.grey.withOpacity(0.3),
-            width: selecionado ? 2 : 1,
+            width: sel ? 2 : 1,
           ),
-          color: selecionado
+          color: sel
               ? Theme.of(context).colorScheme.primary.withOpacity(0.05)
               : null,
         ),
@@ -263,10 +301,11 @@ class _CriarScreenState extends State<CriarScreen> {
           children: [
             const Icon(Icons.directions_car, size: 20),
             const SizedBox(width: 10),
-            Text(v.descricao,
-                style: const TextStyle(fontWeight: FontWeight.w500)),
-            const Spacer(),
-            if (selecionado)
+            Expanded(
+              child: Text(v.descricao,
+                  style: const TextStyle(fontWeight: FontWeight.w500)),
+            ),
+            if (sel)
               Icon(Icons.check_circle,
                   color: Theme.of(context).colorScheme.primary),
           ],
@@ -276,7 +315,7 @@ class _CriarScreenState extends State<CriarScreen> {
   }
 
   Widget _horarioTile(Disponibilidade d) {
-    final selecionado = _horarioSelecionado?.id == d.id;
+    final sel = _horarioSelecionado?.id == d.id;
     return GestureDetector(
       onTap: () => setState(() => _horarioSelecionado = d),
       child: Container(
@@ -285,10 +324,10 @@ class _CriarScreenState extends State<CriarScreen> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: selecionado ? Colors.green : Colors.grey.withOpacity(0.3),
-            width: selecionado ? 2 : 1,
+            color: sel ? Colors.green : Colors.grey.withOpacity(0.3),
+            width: sel ? 2 : 1,
           ),
-          color: selecionado ? Colors.green.withOpacity(0.05) : null,
+          color: sel ? Colors.green.withOpacity(0.05) : null,
         ),
         child: Row(
           children: [
@@ -299,15 +338,12 @@ class _CriarScreenState extends State<CriarScreen> {
               children: [
                 Text(d.data,
                     style: const TextStyle(fontWeight: FontWeight.w500)),
-                Text('${d.horaInicio} — ${d.horaFim}'
-                    '  •  ${d.vagas} vaga(s)',
-                    style: TextStyle(
-                        color: Colors.grey[500], fontSize: 12)),
+                Text('${d.horaInicio} — ${d.horaFim}  •  ${d.vagas} vaga(s)',
+                    style: TextStyle(color: Colors.grey[500], fontSize: 12)),
               ],
             ),
             const Spacer(),
-            if (selecionado)
-              const Icon(Icons.check_circle, color: Colors.green),
+            if (sel) const Icon(Icons.check_circle, color: Colors.green),
           ],
         ),
       ),

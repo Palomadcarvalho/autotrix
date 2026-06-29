@@ -1,31 +1,3 @@
-"""
-mom/publisher.py
-─────────────────────────────────────────────────────────────────
-Publicador de eventos no RabbitMQ usando Topic Exchange.
-
-Arquitetura de filas do Autotrix:
-──────────────────────────────────────────────────────────────
-
-  Exchange: autotrix.events  (type=topic, durable)
-  │
-  ├── Routing key: agendamento.criado
-  │       └── Fila: q.agendamento.criado
-  │               └── Consumer: app da oficina (notifica nova demanda)
-  │
-  ├── Routing key: agendamento.status.atualizado
-  │       └── Fila: q.agendamento.status
-  │               └── Consumer: app do cliente (notifica mudança de status)
-  │
-  ├── Routing key: agendamento.negociacao.proposta
-  │       └── Fila: q.negociacao.proposta
-  │               └── Consumer: app do cliente (recebe contraproposta)
-  │
-  └── Routing key: agendamento.negociacao.respondida
-          └── Fila: q.negociacao.respondida
-                  └── Consumer: app da oficina (sabe se cliente aceitou)
-──────────────────────────────────────────────────────────────
-"""
-
 import os
 import json
 import logging

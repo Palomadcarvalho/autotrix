@@ -1,9 +1,3 @@
-"""
-routes/eventos.py
-Endpoint de consulta ao histórico de eventos processados pelo consumer.
-Útil para demonstração e evidência da Sprint 2.
-"""
-
 from flask import Blueprint, request, jsonify
 from database import get_db
 
@@ -12,11 +6,6 @@ eventos_bp = Blueprint("eventos", __name__)
 
 @eventos_bp.route("/", methods=["GET"])
 def listar():
-    """
-    GET /api/eventos/
-    Lista os eventos processados pelo consumer MOM.
-    Aceita filtros: ?evento=agendamento.criado  ?agendamento_id=1
-    """
     db  = get_db()
     cur = db.cursor()
 
@@ -41,10 +30,6 @@ def listar():
 
 @eventos_bp.route("/resumo", methods=["GET"])
 def resumo():
-    """
-    GET /api/eventos/resumo
-    Retorna contagem de eventos por tipo — útil para evidência.
-    """
     db  = get_db()
     cur = db.cursor()
     cur.execute("""

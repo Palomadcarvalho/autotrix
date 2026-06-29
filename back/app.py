@@ -10,6 +10,7 @@ from routes.servicos         import servicos_bp
 from routes.agendamentos     import agendamentos_bp
 from routes.disponibilidades import disponibilidades_bp
 from routes.eventos          import eventos_bp
+from routes.oficina          import oficina_bp
 from websocket_server        import init_websocket, registrar_rotas
 
 load_dotenv()
@@ -26,6 +27,7 @@ app.register_blueprint(servicos_bp,           url_prefix="/api/servicos")
 app.register_blueprint(agendamentos_bp,       url_prefix="/api/agendamentos")
 app.register_blueprint(disponibilidades_bp,   url_prefix="/api/disponibilidades")
 app.register_blueprint(eventos_bp,            url_prefix="/api/eventos")
+app.register_blueprint(oficina_bp,            url_prefix="/api/oficina")
 
 registrar_rotas(app)
 
@@ -34,8 +36,8 @@ registrar_rotas(app)
 def index():
     return {
         "sistema":   "Autotrix API",
-        "versao":    "3.0.0",
-        "sprint":    "3 — App Flutter Cliente",
+        "versao":    "4.0.0",
+        "sprint":    "4 — App Oficina + Integração Final",
         "banco":     "PostgreSQL",
         "mom":       "RabbitMQ (topic exchange: autotrix.events)",
         "websocket": "ws://localhost:5000/ws/<cliente_id>",
@@ -46,6 +48,7 @@ def index():
             "agendamentos":     "/api/agendamentos",
             "disponibilidades": "/api/disponibilidades",
             "eventos":          "/api/eventos",
+            "oficina":          "/api/oficina",
         },
     }
 

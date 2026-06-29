@@ -1,9 +1,3 @@
-"""
-routes/agendamentos.py
-CRUD de agendamentos + fluxo de negociação.
-Publica eventos no RabbitMQ após cada operação relevante.
-"""
-
 from flask import Blueprint, request, jsonify
 from database import get_db
 from mom.publisher import publicar_evento, RoutingKey
@@ -20,7 +14,6 @@ def _row_to_dict(row):
     return dict(row) if row else None
 
 
-# ── GET /api/agendamentos/
 @agendamentos_bp.route("/", methods=["GET"])
 def listar():
     status     = request.args.get("status")
@@ -58,7 +51,6 @@ def listar():
     return jsonify([dict(r) for r in cur.fetchall()])
 
 
-# ── GET /api/agendamentos/<id>
 @agendamentos_bp.route("/<int:id>", methods=["GET"])
 def buscar(id):
     db  = get_db()
@@ -82,7 +74,6 @@ def buscar(id):
     return jsonify(dict(row))
 
 
-# ── POST /api/agendamentos/
 @agendamentos_bp.route("/", methods=["POST"])
 def criar():
     data = request.get_json()
@@ -104,7 +95,6 @@ def criar():
     novo = dict(cur.fetchone())
     db.commit()
 
-    # ── Evento MOM: notifica a oficina de novo agendamento
     publicar_evento(
         RoutingKey.AGENDAMENTO_CRIADO,
         {
@@ -120,7 +110,6 @@ def criar():
     return jsonify(novo), 201
 
 
-# ── PATCH /api/agendamentos/<id>/status
 @agendamentos_bp.route("/<int:id>/status", methods=["PATCH"])
 def atualizar_status(id):
     data        = request.get_json()
@@ -141,7 +130,6 @@ def atualizar_status(id):
     data_hora_sugerida = row["data_hora_sugerida"]
     data_hora_final    = row["data_hora"]
 
-    # Oficina propõe horário alternativo
     if novo_status == "negociacao":
         sugerida = data.get("data_hora_sugerida")
         if not sugerida:
@@ -150,7 +138,6 @@ def atualizar_status(id):
             }), 400
         data_hora_sugerida = sugerida
 
-        # ── Evento MOM: cliente recebe a proposta
         publicar_evento(
             RoutingKey.NEGOCIACAO_PROPOSTA,
             {
@@ -161,13 +148,11 @@ def atualizar_status(id):
             },
         )
 
-    # Cliente aceita negociação → promove horário sugerido
     if novo_status == "confirmado" and row["status"] == "negociacao":
         if row["data_hora_sugerida"]:
             data_hora_final    = row["data_hora_sugerida"]
             data_hora_sugerida = None
 
-        # ── Evento MOM: oficina sabe que cliente aceitou
         publicar_evento(
             RoutingKey.NEGOCIACAO_RESPONDIDA,
             {
@@ -177,7 +162,6 @@ def atualizar_status(id):
             },
         )
 
-    # Cliente recusa negociação
     if novo_status == "cancelado" and row["status"] == "negociacao":
         publicar_evento(
             RoutingKey.NEGOCIACAO_RESPONDIDA,
@@ -196,7 +180,6 @@ def atualizar_status(id):
     atualizado = dict(cur.fetchone())
     db.commit()
 
-    # ── Evento MOM
     if novo_status not in ("negociacao",):
         publicar_evento(
             RoutingKey.AGENDAMENTO_STATUS_ATUALIZADO,
@@ -211,7 +194,6 @@ def atualizar_status(id):
     return jsonify({"mensagem": f"Status → '{novo_status}'", "agendamento": atualizado})
 
 
-# ── DELETE /api/agendamentos/<id>
 @agendamentos_bp.route("/<int:id>", methods=["DELETE"])
 def cancelar(id):
     db  = get_db()

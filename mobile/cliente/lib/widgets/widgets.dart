@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/agendamento.dart';
 
-// ── StatusBadge ───────────────────────────────────────────────
 
 class StatusBadge extends StatelessWidget {
   final String status;

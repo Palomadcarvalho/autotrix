@@ -1,25 +1,3 @@
-"""
-mom/consumer.py
-─────────────────────────────────────────────────────────────────
-Consumer de eventos do Autotrix — Sprint 2.
-
-Responsabilidades:
-  1. Conectar ao RabbitMQ e declarar exchange + filas
-  2. Processar cada mensagem recebida
-  3. Logar no terminal (evidência visual imediata)
-  4. Persistir no PostgreSQL — tabela eventos_log (histórico auditável)
-
-Fluxo de cada mensagem:
-  RabbitMQ → consumer → handler específico → log + banco → ACK
-
-Para rodar manualmente (fora do Docker):
-  python -m mom.consumer
-
-No Docker Compose (Sprint 2), este módulo sobe como serviço separado:
-  docker compose up consumer
-─────────────────────────────────────────────────────────────────
-"""
-
 import os
 import json
 import logging
@@ -31,7 +9,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ── Logging estruturado ───────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -39,7 +16,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ── Constantes ────────────────────────────────────────────────
 EXCHANGE_NAME = "autotrix.events"
 
 FILAS = [
@@ -66,7 +42,6 @@ FILAS = [
 ]
 
 
-# ── Conexão com PostgreSQL ────────────────────────────────────
 def get_pg_connection():
     return psycopg2.connect(
         os.environ["DATABASE_URL"],
@@ -75,10 +50,6 @@ def get_pg_connection():
 
 
 def salvar_evento_no_banco(envelope: dict, fila: str):
-    """
-    Persiste o evento processado na tabela eventos_log.
-    Garante rastreabilidade completa de todos os eventos consumidos.
-    """
     dados = envelope.get("dados", {})
     try:
         conn = get_pg_connection()
@@ -102,12 +73,7 @@ def salvar_evento_no_banco(envelope: dict, fila: str):
         logger.error(f"[DB] Falha ao persistir evento: {exc}")
 
 
-# ── Declaração do exchange e filas ────────────────────────────
 def declarar_infraestrutura(channel):
-    """
-    Declara exchange, filas e bindings.
-    Operação idempotente — seguro chamar toda vez que o consumer inicia.
-    """
     channel.exchange_declare(
         exchange=EXCHANGE_NAME,
         exchange_type="topic",
@@ -126,22 +92,12 @@ def declarar_infraestrutura(channel):
         )
 
 
-# ── Handlers específicos por evento ──────────────────────────
 
 def handle_agendamento_criado(channel, method, properties, body):
-    """
-    Evento: agendamento.criado
-    Consumidor: App da OFICINA
-    Ação: notificar a oficina de que há uma nova demanda pendente.
 
-    Na Sprint 3/4 este handler vai chamar a API de notificações
-    push (Firebase Cloud Messaging) para exibir um alerta no
-    app da oficina em tempo real.
-    """
     envelope = json.loads(body)
     dados    = envelope.get("dados", {})
 
-    # ── Log detalhado no terminal ─────────────────────────────
     logger.info("=" * 60)
     logger.info("[EVENTO] agendamento.criado")
     logger.info(f"  → Agendamento ID : {dados.get('agendamento_id')}")
@@ -154,19 +110,13 @@ def handle_agendamento_criado(channel, method, properties, body):
     logger.info("[AÇÃO] Notificando app da OFICINA sobre nova demanda...")
     logger.info("=" * 60)
 
-    # ── Persistência no banco ─────────────────────────────────
     salvar_evento_no_banco(envelope, method.routing_key)
 
-    # ── ACK: confirma ao broker que a mensagem foi processada ─
     channel.basic_ack(delivery_tag=method.delivery_tag)
 
 
 def handle_status_atualizado(channel, method, properties, body):
-    """
-    Evento: agendamento.status.atualizado
-    Consumidor: App do CLIENTE
-    Ação: notificar o cliente de que o status do seu agendamento mudou.
-    """
+
     envelope = json.loads(body)
     dados    = envelope.get("dados", {})
 
@@ -185,11 +135,7 @@ def handle_status_atualizado(channel, method, properties, body):
 
 
 def handle_negociacao_proposta(channel, method, properties, body):
-    """
-    Evento: agendamento.negociacao.proposta
-    Consumidor: App do CLIENTE
-    Ação: exibir a proposta de horário alternativo da oficina para o cliente.
-    """
+
     envelope = json.loads(body)
     dados    = envelope.get("dados", {})
 
@@ -208,11 +154,7 @@ def handle_negociacao_proposta(channel, method, properties, body):
 
 
 def handle_negociacao_respondida(channel, method, properties, body):
-    """
-    Evento: agendamento.negociacao.respondida
-    Consumidor: App da OFICINA
-    Ação: informar à oficina se o cliente aceitou ou recusou a proposta.
-    """
+
     envelope = json.loads(body)
     dados    = envelope.get("dados", {})
 
@@ -233,7 +175,6 @@ def handle_negociacao_respondida(channel, method, properties, body):
     channel.basic_ack(delivery_tag=method.delivery_tag)
 
 
-# ── Mapa fila → handler ───────────────────────────────────────
 HANDLERS = {
     "q.agendamento.criado":    handle_agendamento_criado,
     "q.agendamento.status":    handle_status_atualizado,
@@ -242,12 +183,7 @@ HANDLERS = {
 }
 
 
-# ── Entry point ───────────────────────────────────────────────
 def iniciar_consumers():
-    """
-    Conecta ao RabbitMQ, declara a infraestrutura e
-    registra todos os consumers em modo bloqueante.
-    """
     logger.info("[MOM] Iniciando Autotrix Consumer — Sprint 2")
     logger.info(f"[MOM] Conectando em: {os.environ.get('RABBITMQ_URL', 'N/A')}")
 
@@ -258,8 +194,6 @@ def iniciar_consumers():
 
     declarar_infraestrutura(channel)
 
-    # prefetch=1: processa uma mensagem por vez antes de dar ACK
-    # garante que mensagens não se percam em caso de falha no meio do handler
     channel.basic_qos(prefetch_count=1)
 
     for fila in FILAS:

@@ -1,14 +1,17 @@
+import bcrypt
 from flask import Blueprint, request, jsonify
 from database import get_db
 
 clientes_bp = Blueprint("clientes", __name__)
+
+CAMPOS_PUBLICOS = "id, nome, email, telefone, criado_em"
 
 
 @clientes_bp.route("/", methods=["GET"])
 def listar():
     db  = get_db()
     cur = db.cursor()
-    cur.execute("SELECT * FROM clientes ORDER BY nome")
+    cur.execute(f"SELECT {CAMPOS_PUBLICOS} FROM clientes ORDER BY nome")
     return jsonify([dict(r) for r in cur.fetchall()])
 
 
@@ -16,7 +19,7 @@ def listar():
 def buscar(id):
     db  = get_db()
     cur = db.cursor()
-    cur.execute("SELECT * FROM clientes WHERE id = %s", (id,))
+    cur.execute(f"SELECT {CAMPOS_PUBLICOS} FROM clientes WHERE id = %s", (id,))
     row = cur.fetchone()
     if not row:
         return jsonify({"erro": "Cliente não encontrado"}), 404
@@ -26,22 +29,70 @@ def buscar(id):
 @clientes_bp.route("/", methods=["POST"])
 def criar():
     data = request.get_json()
-    for campo in ["nome", "email", "telefone"]:
+
+    for campo in ["nome", "email", "telefone", "senha"]:
         if not data.get(campo):
             return jsonify({"erro": f"Campo '{campo}' é obrigatório"}), 400
+
+    senha_hash = bcrypt.hashpw(
+        data["senha"].encode("utf-8"),
+        bcrypt.gensalt()
+    ).decode("utf-8")
+
     db  = get_db()
     cur = db.cursor()
     try:
         cur.execute("""
-            INSERT INTO clientes (nome, email, telefone)
-            VALUES (%s, %s, %s) RETURNING *
-        """, (data["nome"], data["email"], data["telefone"]))
+            INSERT INTO clientes (nome, email, telefone, senha_hash)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id, nome, email, telefone, criado_em
+        """, (data["nome"], data["email"], data["telefone"], senha_hash))
         novo = dict(cur.fetchone())
         db.commit()
         return jsonify(novo), 201
     except Exception as e:
         db.rollback()
+        if "unique" in str(e).lower():
+            return jsonify({"erro": "E-mail já cadastrado"}), 400
         return jsonify({"erro": str(e)}), 400
+
+
+@clientes_bp.route("/login", methods=["POST"])
+def login():
+    data  = request.get_json()
+    email = data.get("email", "").strip()
+    senha = data.get("senha", "")
+
+    if not email or not senha:
+        return jsonify({"erro": "Credenciais inválidas"}), 401
+
+    db  = get_db()
+    cur = db.cursor()
+    cur.execute(
+        "SELECT id, nome, email, telefone, criado_em, senha_hash "
+        "FROM clientes WHERE email = %s",
+        (email,)
+    )
+    row = cur.fetchone()
+
+    if not row:
+        return jsonify({"erro": "Credenciais inválidas"}), 401
+
+    row = dict(row)
+
+    if not row.get("senha_hash"):
+        return jsonify({"erro": "Credenciais inválidas"}), 401
+
+    if not bcrypt.checkpw(senha.encode("utf-8"), row["senha_hash"].encode("utf-8")):
+        return jsonify({"erro": "Credenciais inválidas"}), 401
+
+    return jsonify({
+        "id":        row["id"],
+        "nome":      row["nome"],
+        "email":     row["email"],
+        "telefone":  row["telefone"],
+        "criado_em": str(row["criado_em"]),
+    })
 
 
 @clientes_bp.route("/<int:id>", methods=["PUT"])
@@ -49,14 +100,15 @@ def atualizar(id):
     data = request.get_json()
     db   = get_db()
     cur  = db.cursor()
-    cur.execute("SELECT * FROM clientes WHERE id = %s", (id,))
+    cur.execute(f"SELECT {CAMPOS_PUBLICOS} FROM clientes WHERE id = %s", (id,))
     row = cur.fetchone()
     if not row:
         return jsonify({"erro": "Cliente não encontrado"}), 404
     row = dict(row)
     cur.execute("""
         UPDATE clientes SET nome = %s, email = %s, telefone = %s
-        WHERE id = %s RETURNING *
+        WHERE id = %s
+        RETURNING id, nome, email, telefone, criado_em
     """, (
         data.get("nome",     row["nome"]),
         data.get("email",    row["email"]),
