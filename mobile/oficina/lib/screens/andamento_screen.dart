@@ -25,16 +25,16 @@ class _AndamentoScreenState extends State<AndamentoScreen> {
   }
 
   Future<void> _carregar() async {
-    try {
-      final todos = await _service.listarAgendamentos(
-        statusFiltro: ['confirmado', 'em_andamento', 'concluido'],
-      );
-      final ag = todos.where((a) => a.id == widget.agendamentoId).firstOrNull;
-      if (mounted) setState(() { _agendamento = ag; _carregando = false; });
-    } catch (_) {
-      if (mounted) setState(() => _carregando = false);
-    }
+  try {
+    final todos = await _service.listarAgendamentos(
+      statusFiltro: ['pendente', 'confirmado', 'em_andamento', 'concluido', 'cancelado'],
+    );
+    final ag = todos.where((a) => a.id == widget.agendamentoId).firstOrNull;
+    if (mounted) setState(() { _agendamento = ag; _carregando = false; });
+  } catch (_) {
+    if (mounted) setState(() => _carregando = false);
   }
+}
 
   Future<void> _concluir() async {
     setState(() => _concluindo = true);
@@ -272,10 +272,12 @@ class _AndamentoScreenState extends State<AndamentoScreen> {
         ),
       );
 
-  String _fmt(DateTime dt) =>
-      '${dt.day.toString().padLeft(2, '0')}/'
-      '${dt.month.toString().padLeft(2, '0')}/'
-      '${dt.year}  '
-      '${dt.hour.toString().padLeft(2, '0')}:'
-      '${dt.minute.toString().padLeft(2, '0')}';
+  String _fmt(DateTime dt) {
+    final local = dt.toLocal();
+    return '${local.day.toString().padLeft(2, '0')}/'
+        '${local.month.toString().padLeft(2, '0')}/'
+        '${local.year}  '
+        '${local.hour.toString().padLeft(2, '0')}:'
+        '${local.minute.toString().padLeft(2, '0')}';
+  }
 }

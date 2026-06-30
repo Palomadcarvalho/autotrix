@@ -56,14 +56,14 @@ class AgendamentoOficina {
   }
 
   static DateTime _parseData(dynamic valor) {
-    if (valor == null) return DateTime.now();
-    final s = valor.toString();
-    try {
-      return DateTime.parse(s);
-    } catch (_) {
-      return DateTime.now();
-    }
+  if (valor == null) return DateTime.now();
+  final s = valor.toString().trim();
+  try {
+    return DateTime.parse(s).toUtc();
+  } catch (_) {
+    return DateTime.now();
   }
+}
 
   bool get isPendente => status == 'pendente';
   bool get isConfirmado => status == 'confirmado';

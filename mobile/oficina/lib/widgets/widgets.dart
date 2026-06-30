@@ -13,15 +13,15 @@ class StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       decoration: BoxDecoration(
-        color:        cfg.cor.withOpacity(0.12),
+        color: cfg.cor.withOpacity(0.12),
         borderRadius: BorderRadius.circular(20),
-        border:       Border.all(color: cfg.cor.withOpacity(0.4)),
+        border: Border.all(color: cfg.cor.withOpacity(0.4)),
       ),
       child: Text(
         cfg.label,
         style: TextStyle(
-          color:      cfg.cor,
-          fontSize:   11,
+          color: cfg.cor,
+          fontSize: 11,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -30,20 +30,27 @@ class StatusBadge extends StatelessWidget {
 
   _Cfg _config(String s) {
     switch (s) {
-      case 'pendente':     return _Cfg('Pendente',      Colors.orange[700]!);
-      case 'negociacao':   return _Cfg('Negociação',    Colors.purple);
-      case 'confirmado':   return _Cfg('Confirmado',    Colors.blue[700]!);
-      case 'em_andamento': return _Cfg('Em andamento',  kOrange);
-      case 'concluido':    return _Cfg('Concluído',     Colors.green[700]!);
-      case 'cancelado':    return _Cfg('Cancelado',     Colors.red[700]!);
-      default:             return _Cfg(s,               Colors.grey);
+      case 'pendente':
+        return _Cfg('Pendente', Colors.orange[700]!);
+      case 'negociacao':
+        return _Cfg('Negociação', Colors.purple);
+      case 'confirmado':
+        return _Cfg('Confirmado', Colors.blue[700]!);
+      case 'em_andamento':
+        return _Cfg('Em andamento', kOrange);
+      case 'concluido':
+        return _Cfg('Concluído', Colors.green[700]!);
+      case 'cancelado':
+        return _Cfg('Cancelado', Colors.red[700]!);
+      default:
+        return _Cfg(s, Colors.grey);
     }
   }
 }
 
 class _Cfg {
   final String label;
-  final Color  cor;
+  final Color cor;
   _Cfg(this.label, this.cor);
 }
 
@@ -61,14 +68,14 @@ class AgendamentoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final a = agendamento;
     return Card(
-      margin:    const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: Colors.grey.withOpacity(0.2)),
       ),
       child: InkWell(
-        onTap:        onTap,
+        onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(14),
@@ -113,10 +120,12 @@ class AgendamentoCard extends StatelessWidget {
         ],
       );
 
-  String _fmt(DateTime dt) =>
-      '${dt.day.toString().padLeft(2, '0')}/'
-      '${dt.month.toString().padLeft(2, '0')}/'
-      '${dt.year}  '
-      '${dt.hour.toString().padLeft(2, '0')}:'
-      '${dt.minute.toString().padLeft(2, '0')}';
+  String _fmt(DateTime dt) {
+    final local = dt.toLocal();
+    return '${local.day.toString().padLeft(2, '0')}/'
+        '${local.month.toString().padLeft(2, '0')}/'
+        '${local.year}  '
+        '${local.hour.toString().padLeft(2, '0')}:'
+        '${local.minute.toString().padLeft(2, '0')}';
+  }
 }

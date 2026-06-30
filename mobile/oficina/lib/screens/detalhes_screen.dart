@@ -13,9 +13,9 @@ class DetalhesScreen extends StatefulWidget {
 }
 
 class _DetalhesScreenState extends State<DetalhesScreen> {
-  final _service        = OficinaService();
-  final _horarioCtrl    = TextEditingController();
-  bool  _processando    = false;
+  final _service = OficinaService();
+  final _horarioCtrl = TextEditingController();
+  bool _processando = false;
 
   @override
   void dispose() {
@@ -36,9 +36,8 @@ class _DetalhesScreenState extends State<DetalhesScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_mensagem(status)),
-          backgroundColor: status == 'cancelado'
-              ? Colors.red[700]
-              : Colors.green[700],
+          backgroundColor:
+              status == 'cancelado' ? Colors.red[700] : Colors.green[700],
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -100,10 +99,10 @@ class _DetalhesScreenState extends State<DetalhesScreen> {
               controller: _horarioCtrl,
               decoration: InputDecoration(
                 labelText: 'Novo horário (AAAA-MM-DDTHH:MM)',
-                hintText:  '2026-05-20T14:00',
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10)),
-                filled:    true,
+                hintText: '2026-05-20T14:00',
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                filled: true,
                 fillColor: Colors.grey[50],
               ),
             ),
@@ -133,10 +132,14 @@ class _DetalhesScreenState extends State<DetalhesScreen> {
 
   String _mensagem(String status) {
     switch (status) {
-      case 'confirmado':  return 'Agendamento confirmado!';
-      case 'cancelado':   return 'Agendamento recusado.';
-      case 'negociacao':  return 'Proposta de horário enviada ao cliente.';
-      default:            return 'Status atualizado.';
+      case 'confirmado':
+        return 'Agendamento confirmado!';
+      case 'cancelado':
+        return 'Agendamento recusado.';
+      case 'negociacao':
+        return 'Proposta de horário enviada ao cliente.';
+      default:
+        return 'Status atualizado.';
     }
   }
 
@@ -178,11 +181,11 @@ class _DetalhesScreenState extends State<DetalhesScreen> {
                       ],
                     ),
                     const Divider(height: 20),
-                    _info('Cliente',    a.clienteNome),
-                    _info('Telefone',   a.clienteTelefone),
-                    _info('Serviço',    a.servicoNome),
-                    _info('Veículo',    a.veiculoDescricao),
-                    _info('Data/hora',  _fmt(a.dataHora)),
+                    _info('Cliente', a.clienteNome),
+                    _info('Telefone', a.clienteTelefone),
+                    _info('Serviço', a.servicoNome),
+                    _info('Veículo', a.veiculoDescricao),
+                    _info('Data/hora', _fmt(a.dataHora)),
                     _info('Valor',
                         'R\$ ${a.preco.toStringAsFixed(2)}  •  ${a.duracaoMin} min'),
                     if (a.observacoes != null && a.observacoes!.isNotEmpty)
@@ -200,9 +203,8 @@ class _DetalhesScreenState extends State<DetalhesScreen> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: _processando
-                          ? null
-                          : () => _atualizar('cancelado'),
+                      onPressed:
+                          _processando ? null : () => _atualizar('cancelado'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.red[700],
                         side: BorderSide(color: Colors.red[700]!),
@@ -216,9 +218,8 @@ class _DetalhesScreenState extends State<DetalhesScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _processando
-                          ? null
-                          : () => _atualizar('confirmado'),
+                      onPressed:
+                          _processando ? null : () => _atualizar('confirmado'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green[700],
                         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -255,9 +256,8 @@ class _DetalhesScreenState extends State<DetalhesScreen> {
             // Ação para confirmado — iniciar serviço
             if (a.isConfirmado)
               ElevatedButton.icon(
-                onPressed: _processando
-                    ? null
-                    : () => _atualizar('em_andamento'),
+                onPressed:
+                    _processando ? null : () => _atualizar('em_andamento'),
                 icon: const Icon(Icons.play_arrow, color: Colors.white),
                 label: const Text('Iniciar serviço',
                     style: TextStyle(color: Colors.white)),
@@ -282,16 +282,18 @@ class _DetalhesScreenState extends State<DetalhesScreen> {
             Text(label,
                 style: TextStyle(fontSize: 11, color: Colors.grey[500])),
             Text(valor,
-                style: const TextStyle(
-                    fontSize: 14, fontWeight: FontWeight.w500)),
+                style:
+                    const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
           ],
         ),
       );
 
-  String _fmt(DateTime dt) =>
-      '${dt.day.toString().padLeft(2, '0')}/'
-      '${dt.month.toString().padLeft(2, '0')}/'
-      '${dt.year}  '
-      '${dt.hour.toString().padLeft(2, '0')}:'
-      '${dt.minute.toString().padLeft(2, '0')}';
+  String _fmt(DateTime dt) {
+    final local = dt.toLocal();
+    return '${local.day.toString().padLeft(2, '0')}/'
+        '${local.month.toString().padLeft(2, '0')}/'
+        '${local.year}  '
+        '${local.hour.toString().padLeft(2, '0')}:'
+        '${local.minute.toString().padLeft(2, '0')}';
+  }
 }

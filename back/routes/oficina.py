@@ -1,9 +1,22 @@
 import os
 import bcrypt
+from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
 from database import get_db
 
 oficina_bp = Blueprint("oficina", __name__)
+
+
+def _serializar(row: dict) -> dict:
+    resultado = {}
+    for k, v in row.items():
+        if isinstance(v, datetime):
+            if v.tzinfo is None:
+                v = v.replace(tzinfo=timezone.utc)
+            resultado[k] = v.isoformat()
+        else:
+            resultado[k] = v
+    return resultado
 
 
 @oficina_bp.route("/login", methods=["POST"])
@@ -34,7 +47,6 @@ def login():
 
 @oficina_bp.route("/agendamentos", methods=["GET"])
 def listar_agendamentos():
-
     db     = get_db()
     cur    = db.cursor()
     status = request.args.get("status")
@@ -68,7 +80,7 @@ def listar_agendamentos():
     query += " ORDER BY a.data_hora ASC"
 
     cur.execute(query, params)
-    return jsonify([dict(r) for r in cur.fetchall()])
+    return jsonify([_serializar(dict(r)) for r in cur.fetchall()])
 
 
 @oficina_bp.route("/agendamentos/<int:id>/status", methods=["PATCH"])
@@ -115,6 +127,11 @@ def atualizar_status(id):
             },
         )
 
+    if novo_status == "confirmado" and row["status"] == "negociacao":
+        if row["data_hora_sugerida"]:
+            data_hora_final    = row["data_hora_sugerida"]
+            data_hora_sugerida = None
+
     cur.execute("""
         UPDATE agendamentos
         SET status = %s, data_hora_sugerida = %s, data_hora = %s
@@ -137,5 +154,5 @@ def atualizar_status(id):
 
     return jsonify({
         "mensagem":    f"Status atualizado para '{novo_status}'",
-        "agendamento": atualizado,
+        "agendamento": _serializar(atualizado),
     })

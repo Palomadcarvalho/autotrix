@@ -53,6 +53,18 @@ class OficinaService {
     }
     throw Exception('Erro ao carregar agendamentos');
   }
+  
+  Future<AgendamentoOficina> buscarAgendamento(int id) async {
+  final res = await http.get(
+    Uri.parse('$_baseUrl/oficina/agendamentos?status=pendente,confirmado,em_andamento,concluido,cancelado'),
+  );
+  if (res.statusCode == 200) {
+    final List data = jsonDecode(res.body);
+    final item = data.firstWhere((j) => (j['id'] as num).toInt() == id);
+    return AgendamentoOficina.fromJson(item);
+  }
+  throw Exception('Agendamento não encontrado');
+}
 
   Future<void> atualizarStatus(
     int agendamentoId,
