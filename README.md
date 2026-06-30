@@ -8,7 +8,7 @@ Plataforma de agendamento de serviços mecânicos que conecta clientes e oficina
 
 Oficinas mecânicas de pequeno e médio porte ainda dependem de ligações, WhatsApp e atendimento presencial para gerenciar seus agendamentos. Isso gera conflitos de horário, interrupções constantes no trabalho da equipe e dificuldade para o cliente saber se o serviço foi aceito.
 
-O Autotrix resolve esse problema: a oficina cadastra seus horários disponíveis e o cliente agenda de forma autônoma. O sistema suporta também um fluxo de **negociação de horários** — a oficina pode propor um horário alternativo e o cliente aceita ou recusa, tudo dentro da plataforma.
+O Autotrix resolve esse problema: a oficina cadastra seus horários disponíveis e o cliente agenda de forma autônoma. O sistema suporta também um fluxo de **negociação de horários**, a oficina pode propor um horário alternativo e o cliente aceita ou recusa, tudo dentro da plataforma.
 
 ### Perfis
 

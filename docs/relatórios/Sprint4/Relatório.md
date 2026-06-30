@@ -1,9 +1,13 @@
 # Relatório Técnico Final — Autotrix
 
 **Disciplina:** Lab. de Desenvolvimento de Aplicações Móveis e Distribuídas
+
 **Curso:** Engenharia de Software — PUC Minas
+
 **Semestre:** 1º Semestre 2026
+
 **Aluno(a):** Paloma Dias de Carvalho
+
 **Professores:** Cleiton Silva Tavares e Cristiano de Macedo Neto
 
 ---
@@ -22,15 +26,19 @@ O sistema é composto por quatro camadas que se comunicam de formas distintas.
 
 ### Backend REST (Flask + PostgreSQL)
 
-O coração do sistema é uma API RESTful construída em Flask, rodando em container Docker junto com um banco PostgreSQL. A escolha do Flask foi deliberada, ele não impõe estrutura, o que forçou a criar a nossa própria organização usando Blueprints, um recurso do Flask que separa as rotas por recurso de negócio. Cada arquivo em `routes/` é responsável por um único domínio: clientes, veículos, serviços, disponibilidades, agendamentos e a gestão da oficina.
+O principal do sistema é uma API RESTful construída em Flask, orquestrada pelo Docker Compose junto com PostgreSQL, RabbitMQ e um consumer MOM rodando como serviço independente.
 
-O banco de dados foi projetado em torno da tabela `agendamentos`, que conecta clientes, veículos e serviços e controla o fluxo de estados de um agendamento. Um detalhe importante foi a criação de um tipo `ENUM` nativo no PostgreSQL para os status (`pendente`, `negociacao`, `confirmado`, `em_andamento`, `concluido`, `cancelado`). Isso garante integridade dos dados no nível do banco, não apenas na aplicação.
+A escolha do Flask foi deliberada, visto que ele não impõe estrutura, sendo assim, foi elaborado a própria organização. O backend foi dividido em Blueprints, um por recurso de negócio, cada um responsável por um único domínio: clientes, veículos, serviços, disponibilidades, agendamentos e gestão da oficina. Essa organização reflete diretamente o Princípio da Responsabilidade Única, que Martin (2019, p. 62) define como: cada módulo deve ter um, e apenas um, motivo para mudar.
+
+O banco de dados foi projetado em torno da tabela agendamentos, que conecta clientes, veículos e serviços e controla um ciclo de estados (pendente → confirmado → em_andamento → concluido). Um tipo ENUM nativo no PostgreSQL garante integridade dos estados no nível do banco, não apenas na aplicação, decisão que Martin (2019) chamaria de "colocar a política de dados no lugar certo, e não nos detalhes da aplicação"
 
 A autenticação foi implementada de formas diferentes para os dois perfis. Para clientes, usamos bcrypt para hash de senhas, armazenando apenas o hash no banco, as credenciais nunca trafegam em texto puro. Para a oficina, optamos por credenciais fixas definidas em variáveis de ambiente, o que é suficiente para um único prestador e elimina a complexidade de um sistema de gestão de usuários administrativos.
 
 ### Middleware Orientado a Mensagens (RabbitMQ)
 
-A comunicação assíncrona foi implementada com RabbitMQ usando Topic Exchange. Quando o cliente cria um agendamento, o backend publica um evento na exchange `autotrix.events` com a routing key `agendamento.criado`. Um consumer rodando em container separado consome essa mensagem e a persiste na tabela `eventos_log`.
+A comunicação assíncrona foi implementada com RabbitMQ usando Topic Exchange. Hohpe e Woolf (2003, p. 65) descrevem as quatro opções de integração entre sistemas, File Transfer, Shared Database, Remote Procedure Invocation e Messaging, e concluem que a abordagem por mensagens é a que melhor equilibra desacoplamento e coordenação entre componentes distribuídos.
+
+No Autotrix, quando o cliente cria um agendamento, o backend publica um evento na exchange autotrix.events com a routing key agendamento.criado. Um consumer rodando em container separado consome essa mensagem e a persiste na tabela eventos_log. Como destacam Hohpe e Woolf (2003, p. 42): "remover as dependências entre os sistemas torna a solução como um todo mais tolerante a mudanças, o principal benefício do acoplamento fraco."
 
 A decisão de usar Topic Exchange em vez de Direct foi pensada para o futuro: se o sistema um dia precisar de um serviço de notificações push, ele pode se inscrever em `agendamento.*` e receber todos os eventos sem que o producer precise ser alterado.
 
@@ -39,6 +47,8 @@ Quatro eventos compõem o fluxo:
 - `agendamento.status.atualizado` — notifica o cliente de mudança de status
 - `agendamento.negociacao.proposta` — oficina propõe novo horário
 - `agendamento.negociacao.respondida` — cliente aceita ou recusa
+
+As filas foram declaradas com durable=True e as mensagens com delivery_mode=2, garantindo persistência em disco. Essa configuração é essencial em sistemas distribuídos onde reinicializações são inevitáveis: como ressaltam Coulouris et al. (2011, p. 4), "falhas parciais são uma característica intrínseca dos sistemas distribuídos e devem ser tratadas como casos normais de operação, não como exceções."
 
 ### Infraestrutura com Docker Compose
 
@@ -117,7 +127,7 @@ Usar os verbos HTTP com a semântica correta, especialmente `PATCH` em vez de `P
 
 ## 6. Conclusão
 
-O Autotrix não é apenas um projeto acadêmico, é uma solução que endereça um problema real, com uma arquitetura que poderia ser implantada em produção com ajustes incrementais. As quatro sprints construíram o sistema de forma progressiva, e cada entrega dependia da anterior.
+O Autotrix não é apenas um projeto acadêmico, é uma solução que endereça um problema real e familiar, visto que a ideia surgiu através de situações enfrentadas no empreendimento de um parente. A arquitetura foi elaborada de maneira que poderia ser implantada em produção com ajustes incrementais. As quatro sprints construíram o sistema de forma progressiva, e cada entrega dependia da anterior.
 
 O maior aprendizado não foi técnico, mas arquitetural: a importância de separar responsabilidades. Um sistema em que cada componente faz uma coisa bem é mais fácil de depurar, de evoluir e de entender. E quando algo dá errado, como invariavelmente acontece, é muito mais fácil encontrar onde.
 
@@ -125,12 +135,8 @@ O maior aprendizado não foi técnico, mas arquitetural: a importância de separ
 
 ## Referências
 
-HOHPE, Gregor; WOOLF, Bobby. *Enterprise Integration Patterns: designing, building, and deploying messaging solutions*. Boston: Addison-Wesley, 2003.
+COULOURIS, George; DOLLIMORE, Jean; KINDBERG, Tim. Sistemas distribuídos: conceitos e projeto. 4. ed. Porto Alegre: Bookman, 2007.
 
-MARTIN, Robert C. *Arquitetura limpa: o guia do artesão para estrutura e design de software*. Rio de Janeiro: Alta Books, 2019.
+HOHPE, Gregor; WOOLF, Bobby. Enterprise Integration Patterns: designing, building, and deploying messaging solutions. Boston: Addison-Wesley, 2003.
 
-RICHARDSON, Chris. *Microservices patterns: with examples in Java*. Shelter Island: Manning, 2018.
-
-COULOURIS, George et al. *Distributed Systems: concepts and design*. 5th ed. Boston: Addison-Wesley, 2011.
-
-BAILEY, Thomas. *Flutter for beginners*. 3rd ed. Birmingham: Packt, 2023.
+MARTIN, Robert C. Arquitetura limpa: o guia do artesão para estrutura e design de software. Rio de Janeiro: Alta Books, 2019.
